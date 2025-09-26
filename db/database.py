@@ -36,23 +36,26 @@ def init_db():
         """))
 
         # --- Checkups table ---
+        # --- Checkups table ---
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS checkups (
                 checkup_id SERIAL PRIMARY KEY,
                 uid UUID NOT NULL REFERENCES karyawan(uid) ON DELETE CASCADE,
-                tanggal DATE NOT NULL,
+                tanggal_checkup DATE NOT NULL,
                 tanggal_lahir DATE,
                 umur INTEGER,
                 tinggi NUMERIC(5,2),
                 berat NUMERIC(5,2),
                 lingkar_perut NUMERIC(5,2),
                 bmi NUMERIC(5,2),
-                gestational_diabetes NUMERIC(5,2),
+                gula_darah_puasa NUMERIC(5,2),
+                gula_darah_sewaktu NUMERIC(5,2),
                 cholesterol NUMERIC(5,2),
                 asam_urat NUMERIC(5,2),
                 status VARCHAR(50)   -- Well/Unwell or other nurse status
             )
         """))
+
 
         # --- Users table ---
         conn.execute(text("""
