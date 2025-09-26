@@ -51,7 +51,7 @@ def render_sidebar():
 # -------------------------------
 def main():
     # -------------------------------
-    # Show interface if authenticated
+    # Check for UID in query params (QR login)
     # -------------------------------
     params = st.query_params
     uid = params.get("uid")
@@ -73,9 +73,15 @@ def main():
             })
             st.rerun()  # reload app with new state
 
+    # -------------------------------
+    # Show interface if authenticated
+    # -------------------------------
     if st.session_state.get("authenticated"):
-        render_sidebar()
         role = st.session_state["user_role"]
+
+        # Show sidebar only for non-Karyawan roles
+        if role != "Karyawan":
+            render_sidebar()
 
         # Decide which interface to show
         page_to_show = st.session_state.get("current_page") or role
@@ -89,8 +95,9 @@ def main():
         elif page_to_show == "Master":
             st.session_state["current_page"] = "Master"
             master_interface()
-        elif page_to_show == "Karyawan":   # ✅ added case
+        elif page_to_show == "Karyawan":
             st.session_state["current_page"] = "Karyawan"
+            from ui.karyawan_interface import karyawan_interface
             karyawan_interface()
         else:
             st.error("❌ Role tidak dikenal, hubungi administrator.")
@@ -100,7 +107,6 @@ def main():
     # -------------------------------
     else:
         login()  # ✅ uses login_ui.login() for normal login
-
 
 # -------------------------------
 # Run app
