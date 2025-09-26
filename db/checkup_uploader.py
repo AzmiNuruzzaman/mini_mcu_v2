@@ -34,11 +34,7 @@ def safe_date(val):
 # Main parser and uploader
 # -----------------------------
 def parse_checkup_xls(file_path):
-    """
-    Parse an XLS/XLSX file with employee medical checkups,
-    and insert into DB. Returns a dict with inserted count and skipped rows.
-    """
-    all_sheets = pd.read_excel(file_path, sheet_name=None)
+    all_sheets = pd.read_excel(file_path, sheet_name=None, dtype=str)  # read all as str to clean easily
     inserted = 0
     skipped = []
 
@@ -54,66 +50,59 @@ def parse_checkup_xls(file_path):
         if 'tanggal_checkup' not in df.columns:
             df['tanggal_checkup'] = pd.Timestamp.today().date()
 
-        # Convert height from meters to cm if necessary
-        if 'tinggi' in df.columns:
-            df['tinggi'] = df['tinggi'].apply(lambda x: x*100 if pd.notna(x) and x < 3 else x)
+        # Clean UID
+        df['uid'] = df['uid'].astype(str).str.strip()
+        df = df[df['uid'].notna() & (df['uid'] != 'nan')]
 
-        # Normalize text columns
-        for col in ['nama', 'jabatan']:
+        # Convert text columns
+        for col in ['nama', 'jabatan', 'lokasi']:
             if col in df.columns:
                 df[col] = df[col].apply(normalize_string)
 
-        # Handle dates
-        if 'tanggal_lahir' in df.columns:
-            df['tanggal_lahir'] = df['tanggal_lahir'].apply(safe_date)
-        df['tanggal_checkup'] = df['tanggal_checkup'].apply(safe_date)
+        # Convert numeric fields
+        numeric_cols = ['tinggi','berat','lingkar_perut','gula_darah_puasa','gula_darah_sewaktu','cholesterol','asam_urat','umur','bmi']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].str.replace(',', '.').apply(safe_float)
+
+        # Convert dates
+        for col in ['tanggal_lahir', 'tanggal_checkup']:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: safe_date(pd.to_datetime(x, dayfirst=True, errors='coerce')))
 
         # Iterate rows
         for idx, row in df.iterrows():
-            if not isinstance(row, pd.Series):
-                skipped.append({'row': idx+2, 'reason': 'Invalid row type'})
-                continue
-
             row_dict = row.to_dict()
-
-            # Skip empty rows
-            if all((v is None) or (isinstance(v, float) and pd.isna(v)) or (isinstance(v, str) and not v.strip()) for v in row_dict.values()):
-                skipped.append({'row': idx+2, 'reason': 'Empty row'})
-                continue
-
-            # Use UID from Excel
-            uid = str(row_dict.get('uid', '')).strip()
+            uid = row_dict.get('uid')
             if not uid or not get_employee_by_uid(uid):
                 skipped.append({'row': idx+2, 'reason': 'UID not found in database'})
                 continue
 
             try:
-                berat = safe_float(row_dict.get('berat'))
-                tinggi_cm = safe_float(row_dict.get('tinggi'))
+                tinggi_cm = row_dict.get('tinggi')
+                berat = row_dict.get('berat')
                 tinggi_m = (tinggi_cm / 100) if tinggi_cm else None
-                bmi = round(berat / (tinggi_m ** 2), 2) if berat and tinggi_m else None
+                bmi = round(berat / (tinggi_m ** 2), 2) if berat and tinggi_m else row_dict.get('bmi')
 
-                # Build checkup data WITHOUT checkup_id
                 checkup_data = {
                     'uid': uid,
-                    'tanggal_checkup': safe_date(row_dict.get('tanggal_checkup')) or pd.Timestamp.today().date(),
-                    'tanggal_lahir': safe_date(row_dict.get('tanggal_lahir')),
-                    'umur': safe_float(row_dict.get('umur')),
+                    'tanggal_checkup': row_dict.get('tanggal_checkup') or pd.Timestamp.today().date(),
+                    'tanggal_lahir': row_dict.get('tanggal_lahir'),
+                    'umur': row_dict.get('umur'),
                     'tinggi': tinggi_cm,
                     'berat': berat,
-                    'lingkar_perut': safe_float(row_dict.get('lingkar_perut')),
+                    'lingkar_perut': row_dict.get('lingkar_perut'),
                     'bmi': bmi,
-                    'gula_darah_puasa': safe_float(row_dict.get('gula_darah_puasa')),
-                    'gula_darah_sewaktu': safe_float(row_dict.get('gula_darah_sewaktu')),
-                    'cholesterol': safe_float(row_dict.get('cholesterol')),
-                    'asam_urat': safe_float(row_dict.get('asam_urat')),
+                    'gula_darah_puasa': row_dict.get('gula_darah_puasa'),
+                    'gula_darah_sewaktu': row_dict.get('gula_darah_sewaktu'),
+                    'cholesterol': row_dict.get('cholesterol'),
+                    'asam_urat': row_dict.get('asam_urat'),
                     'lokasi': row_dict.get('lokasi') or sheet_name
                 }
-
                 insert_medical_checkup(**checkup_data)
                 inserted += 1
-
             except Exception as e:
                 skipped.append({'row': idx+2, 'reason': str(e)})
 
     return {'inserted': inserted, 'skipped': skipped}
+
