@@ -12,7 +12,7 @@ from config.settings import UPLOAD_DIR
 CHECKUP_COLUMNS = [
     "tanggal_checkup", "tinggi", "berat", "bmi", "lingkar_perut",
     "gula_darah_puasa", "cholesterol", "asam_urat", "status",
-    "tanggal_lahir", "umur", "gula_darah_sewaktu"
+    "tanggal_lahir", "umur", "gula_darah_sewaktu", "lokasi"
 ]
 
 # --- Numeric columns centralized for rounding ---
