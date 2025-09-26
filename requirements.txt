@@ -9,5 +9,4 @@ openpyxl
 supabase==1.0.0
 pillow
 requests
-
-
+XlsxWriter
