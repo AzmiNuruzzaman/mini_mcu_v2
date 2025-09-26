@@ -915,7 +915,7 @@ def manager_interface(current_employee_uid=None):
         with tab_edit:
             if emp:
                 # --- Checkup date ---
-                tanggal_check = st.date_input("Tanggal Pemeriksaan", datetime.today())
+                tanggal_check = st.date_input("Tanggal Pemeriksaan", datetime.today().date())
 
                 col1, col2 = st.columns(2)
                 # Other medical inputs
