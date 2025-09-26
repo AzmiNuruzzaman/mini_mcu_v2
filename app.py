@@ -55,8 +55,7 @@ def main():
     # -------------------------------
     params = st.query_params
     uid = params.get("uid")
-    params = st.query_params
-    uid = params.get("uid")
+
     if uid and not st.session_state.get("authenticated"):
         # Simulate QR login here instead of switching page
         from ui.karyawan_interface import karyawan_interface
@@ -90,6 +89,9 @@ def main():
         elif page_to_show == "Master":
             st.session_state["current_page"] = "Master"
             master_interface()
+        elif page_to_show == "Karyawan":   # ✅ added case
+            st.session_state["current_page"] = "Karyawan"
+            karyawan_interface()
         else:
             st.error("❌ Role tidak dikenal, hubungi administrator.")
 
@@ -98,6 +100,7 @@ def main():
     # -------------------------------
     else:
         login()  # ✅ uses login_ui.login() for normal login
+
 
 # -------------------------------
 # Run app
