@@ -1,7 +1,7 @@
 # db/database.py
 import bcrypt
 from sqlalchemy import create_engine, text
-from config.settings import POSTGRES_URL, DEFAULT_USERS
+from config.settings import POSTGRES_URL, DEFAULT_USERS, INITIAL_LOKASI
 
 # ---------------------------------------------------------------------
 # CONNECTION
@@ -21,6 +21,7 @@ def init_db():
     - karyawan   (from Manager XLS upload)
     - checkups   (from Nurse data entry)
     - users      (for auth, with DEFAULT_USERS bootstrapped)
+    - lokasi     (initial seeds from INITIAL_LOKASI)
     """
     engine = get_engine()
     with engine.connect() as conn:
@@ -28,7 +29,7 @@ def init_db():
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS karyawan (
                 uid UUID PRIMARY KEY,
-                username TEXT NOT NULL,
+                nama TEXT NOT NULL,
                 jabatan TEXT,
                 lokasi TEXT,
                 tanggal_lahir DATE
@@ -40,14 +41,15 @@ def init_db():
             CREATE TABLE IF NOT EXISTS checkups (
                 checkup_id SERIAL PRIMARY KEY,
                 uid UUID NOT NULL REFERENCES karyawan(uid) ON DELETE CASCADE,
-                tanggal DATE NOT NULL,
+                tanggal_checkup DATE NOT NULL,
                 tanggal_lahir DATE,
                 umur INTEGER,
                 tinggi NUMERIC(5,2),
                 berat NUMERIC(5,2),
                 lingkar_perut NUMERIC(5,2),
                 bmi NUMERIC(5,2),
-                gestational_diabetes NUMERIC(5,2),
+                gula_darah_puasa NUMERIC(5,2),
+                gula_darah_sewaktu NUMERIC(5,2),
                 cholesterol NUMERIC(5,2),
                 asam_urat NUMERIC(5,2),
                 status VARCHAR(50)   -- Well/Unwell or other nurse status
@@ -65,6 +67,14 @@ def init_db():
             )
         """))
 
+        # --- Lokasi table ---
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS lokasi (
+                id SERIAL PRIMARY KEY,
+                nama TEXT UNIQUE NOT NULL
+            )
+        """))
+
         # --- Insert default users if table is empty ---
         result = conn.execute(text("SELECT COUNT(*) FROM users")).fetchone()
         if result[0] == 0:
@@ -73,6 +83,15 @@ def init_db():
                 conn.execute(
                     text("INSERT INTO users (username, password, role) VALUES (:u, :p, :r)"),
                     {"u": username, "p": hashed_pw, "r": role}
+                )
+
+        # --- Insert initial lokasi seeds if table is empty ---
+        result = conn.execute(text("SELECT COUNT(*) FROM lokasi")).fetchone()
+        if result[0] == 0:
+            for lok in INITIAL_LOKASI:
+                conn.execute(
+                    text("INSERT INTO lokasi (nama) VALUES (:nama)"),
+                    {"nama": lok}
                 )
 
         conn.commit()
