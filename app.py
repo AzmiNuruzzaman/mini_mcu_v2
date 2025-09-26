@@ -55,9 +55,25 @@ def main():
     # -------------------------------
     params = st.query_params
     uid = params.get("uid")
+    params = st.query_params
+    uid = params.get("uid")
     if uid and not st.session_state.get("authenticated"):
-        st.switch_page("app_karyawan.py")
-        
+        # Simulate QR login here instead of switching page
+        from ui.karyawan_interface import karyawan_interface
+        from db.queries import get_employee_by_uid
+
+        employee = get_employee_by_uid(uid)
+        if employee:
+            st.session_state.update({
+                "user_role": "Karyawan",
+                "username": employee["nama"],
+                "employee_uid": uid,
+                "qr_access": True,
+                "authenticated": True,
+                "current_page": "Karyawan"
+            })
+            st.rerun()  # reload app with new state
+
     if st.session_state.get("authenticated"):
         render_sidebar()
         role = st.session_state["user_role"]
