@@ -351,7 +351,6 @@ def manager_interface(current_employee_uid=None):
             st.markdown("### 📥 Download Template / Data Check-Up")
             from utils.export_utils import generate_karyawan_template_excel, export_checkup_data_excel
             from db.helpers import get_dashboard_checkup_data
-            import datetime
 
             # --- Lokasi filter for template ---
             try:
