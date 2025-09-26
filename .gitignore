@@ -1,0 +1,35 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.log
+
+# --- Virtual Environment ---
+venv/
+env/
+.venv/
+
+# --- IDE ---
+.vscode/
+.idea/
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
+
+# --- Streamlit ---
+# Ignore only local secrets; allow other Streamlit configs if needed
+.streamlit/secrets.toml
+
+# --- Database (local only, don’t push client data) ---
+*.db
+
+# --- Jupyter / Notebooks ---
+*.ipynb_checkpoints/
+
+# --- Exports (auto-generated files) ---
+*.csv
+*.xlsx
