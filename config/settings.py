@@ -9,8 +9,15 @@ SIDEBAR_TITLE = "🔑 Login"
 # ---------------------------
 # Postgres / Supabase connection (V2)
 # ---------------------------
-POSTGRES_URL = "postgresql+psycopg2://mini_mcu_user:new_password@localhost:5432/mini_mcu_v2"
+import streamlit as st
 
+POSTGRES_URL = (
+    f"postgresql://{st.secrets['USER']}:"
+    f"{st.secrets['PASSWORD']}@"
+    f"{st.secrets['HOST']}:"
+    f"{st.secrets['PORT']}/"
+    f"{st.secrets['DBNAME']}?sslmode=require"
+)
 
 # ---------------------------
 # Default users (for login only)
