@@ -65,9 +65,15 @@ def get_dashboard_checkup_data() -> pd.DataFrame:
         latest_checkup_df = pd.DataFrame()
 
     df_combined = employees_df.copy()
-    df_combined = df_combined.merge(
-        latest_checkup_df, on="uid", how="left", suffixes=("", "_checkup")
-    )
+
+    # --- PATCH: merge only if both dfs have 'uid' column ---
+    if "uid" in df_combined.columns and "uid" in latest_checkup_df.columns:
+        df_combined = df_combined.merge(
+            latest_checkup_df, on="uid", how="left", suffixes=("", "_checkup")
+        )
+    else:
+        # No merge possible, just proceed with employees_df
+        pass
 
     # Normalize tanggal fields
     if "tanggal_checkup" in df_combined.columns:
@@ -109,6 +115,7 @@ def get_dashboard_checkup_data() -> pd.DataFrame:
         df_combined['tahun'] = 0
 
     return df_combined
+
 
 def get_medical_checkups_by_uid(uid: str) -> pd.DataFrame:
     """
