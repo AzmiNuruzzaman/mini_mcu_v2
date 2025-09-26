@@ -59,7 +59,9 @@ def qr_manager_interface():
     selected_name = selected_user['nama']
 
     # --- Build static server URL for QR code ---
-    server_url = "http://localhost:8501"  # ✅ Replace with your actual server URL
+    from config.settings import APP_BASE_URL
+    server_url = APP_BASE_URL
+
     qr_url = f"{server_url}/app_karyawan?uid={selected_uid}"
 
     # --- Display QR ---
