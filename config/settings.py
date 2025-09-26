@@ -48,3 +48,5 @@ INITIAL_LOKASI = [
     "HWU EHR#10",
     "Kantor"
 ]
+
+APP_BASE_URL = "https://mini-mcu-v2.streamlit.app"
