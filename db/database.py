@@ -6,11 +6,23 @@ from config.settings import POSTGRES_URL, DEFAULT_USERS
 # ---------------------------------------------------------------------
 # CONNECTION
 # ---------------------------------------------------------------------
+_engine = None
+
 def get_engine():
     """
-    Return SQLAlchemy engine for Supabase PostgreSQL using POSTGRES_URL.
+    Return a singleton SQLAlchemy engine for Supabase PostgreSQL.
+    Uses a connection pool to prevent max clients errors.
     """
-    return create_engine(POSTGRES_URL)
+    global _engine
+    if _engine is None:
+        # pool_size=5, max_overflow=0 keeps active connections limited
+        _engine = create_engine(
+            POSTGRES_URL,
+            pool_size=5,
+            max_overflow=0,
+            pool_pre_ping=True,
+        )
+    return _engine
 
 # ---------------------------------------------------------------------
 # INITIALIZATION
@@ -23,7 +35,7 @@ def init_db():
     - users      (for auth, with DEFAULT_USERS bootstrapped)
     """
     engine = get_engine()
-    with engine.connect() as conn:
+    with engine.begin() as conn:  # <-- begin() automatically commits/rollbacks
         # --- Karyawan master table ---
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS karyawan (
@@ -35,7 +47,6 @@ def init_db():
             )
         """))
 
-        # --- Checkups table ---
         # --- Checkups table ---
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS checkups (
@@ -52,10 +63,9 @@ def init_db():
                 gula_darah_sewaktu NUMERIC(5,2),
                 cholesterol NUMERIC(5,2),
                 asam_urat NUMERIC(5,2),
-                status VARCHAR(50)   -- Well/Unwell or other nurse status
+                status VARCHAR(50)
             )
         """))
-
 
         # --- Users table ---
         conn.execute(text("""
@@ -77,8 +87,6 @@ def init_db():
                     text("INSERT INTO users (username, password, role) VALUES (:u, :p, :r)"),
                     {"u": username, "p": hashed_pw, "r": role}
                 )
-
-        conn.commit()
 
     print("✅ Database initialized successfully!")
 

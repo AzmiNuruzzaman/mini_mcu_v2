@@ -157,54 +157,88 @@ def load_checkups():
             df[date_col] = pd.to_datetime(df[date_col], errors="coerce").dt.date
     return df
 
-
-
-
-
-def save_checkups(df):
+def save_checkups(df: pd.DataFrame):
+    """
+    Save medical checkups DataFrame to DB efficiently using bulk insert.
+    """
     missing_cols = [col for col in CHECKUP_COLUMNS if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
-    df = df[CHECKUP_COLUMNS]
+
+    df = df[CHECKUP_COLUMNS].copy()
     df = _round_numeric_cols(df)
+
     try:
         with get_engine().begin() as conn:
+            # Convert DataFrame to list of dicts for bulk insert
             records = df.to_dict(orient="records")
             if not records:
                 return
+
+            # Prepare SQL with named placeholders
             cols = ", ".join(CHECKUP_COLUMNS)
             placeholders = ", ".join([f":{c}" for c in CHECKUP_COLUMNS])
-            conn.execute(text(f"INSERT INTO checkups ({cols}) VALUES ({placeholders})"), records)
-    except SQLAlchemyError as e:
+            sql = text(f"INSERT INTO checkups ({cols}) VALUES ({placeholders})")
+
+            # Execute all rows in one go
+            conn.execute(sql, records)
+
+    except Exception as e:
+        print(f"❌ Error saving checkups: {e}")
         raise e
 
 
+
 # --- Save uploaded checkups safely ---
-def save_uploaded_checkups(df):
-    required_cols = ["nama", "jabatan", "lokasi", "tanggal_checkup",
-                     "tanggal_lahir", "tinggi", "berat", "lingkar_perut",
-                     "bmi", "gula_darah_puasa", "gula_darah_sewaktu",
-                     "cholesterol", "asam_urat"]
+def save_uploaded_checkups(df: pd.DataFrame):
+    """
+    Save uploaded checkups from XLS file.
+    Optimized for speed: batch UID lookup instead of per-row DB queries.
+    """
+    required_cols = [
+        "nama", "jabatan", "lokasi", "tanggal_checkup",
+        "tanggal_lahir", "tinggi", "berat", "lingkar_perut",
+        "bmi", "gula_darah_puasa", "gula_darah_sewaktu",
+        "cholesterol", "asam_urat"
+    ]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
+
+    # Ensure dates are proper
     df["tanggal_checkup"] = pd.to_datetime(df["tanggal_checkup"], errors="coerce").dt.date
     df["tanggal_lahir"] = pd.to_datetime(df["tanggal_lahir"], errors="coerce").dt.date
+
+    # Compute age
     today = pd.Timestamp.today().date()
     df["umur"] = df["tanggal_lahir"].apply(
         lambda d: today.year - d.year - ((today.month, today.day) < (d.month, d.day))
         if pd.notnull(d) else 0
     )
+
+    # Round numeric columns
     df = _round_numeric_cols(df)
-    df["uid"] = df.apply(lambda row: get_karyawan_uid(
-        nama=row["nama"],
-        jabatan=row["jabatan"],
-        lokasi=row["lokasi"],
-        tanggal_lahir=row["tanggal_lahir"]
-    ), axis=1)
-    df = df[df["uid"].notnull()].copy()
-    if not df.empty:
-        save_checkups(df)
+
+    # --- Batch UID mapping ---
+    # Fetch all karyawan at once
+    karyawan_df = pd.read_sql("SELECT uid, nama, jabatan, lokasi, tanggal_lahir FROM karyawan", get_engine())
+
+    # Merge uploaded df with karyawan_df on multiple keys
+    merged = df.merge(
+        karyawan_df,
+        on=["nama", "jabatan", "lokasi", "tanggal_lahir"],
+        how="left",
+        suffixes=("", "_karyawan")
+    )
+
+    # Keep only rows that have UID
+    merged = merged[merged["uid"].notnull()].copy()
+
+    if not merged.empty:
+        # Keep CHECKUP_COLUMNS only
+        merged_checkups = merged[CHECKUP_COLUMNS].copy()
+        save_checkups(merged_checkups)
+
 
 
 
