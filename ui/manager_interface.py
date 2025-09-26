@@ -661,10 +661,16 @@ def manager_interface(current_employee_uid=None):
             # --- Load daftar lokasi ---
             if "lokasi_list" not in st.session_state:
                 try:
-                    st.session_state["lokasi_list"] = list(get_all_lokasi() or [])
+                    result = get_all_lokasi() or []
+                    # normalize output (handles tuple, dict, or str)
+                    st.session_state["lokasi_list"] = [
+                        row[0] if isinstance(row, (tuple, list)) else row.get("name") if isinstance(row, dict) else row
+                        for row in result
+                    ]
                 except Exception as e:
                     st.error(f"⚠️ Gagal load lokasi: {e}")
                     st.session_state["lokasi_list"] = []
+
 
             # --- Daftar Lokasi Saat Ini (top) ---
             daftar_placeholder = st.container()
