@@ -8,6 +8,6 @@ qrcode[pil]
 openpyxl
 supabase==1.0.0
 pillow
-request
+requests
 
 
