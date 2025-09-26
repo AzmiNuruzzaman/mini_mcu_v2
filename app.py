@@ -53,6 +53,11 @@ def main():
     # -------------------------------
     # Show interface if authenticated
     # -------------------------------
+    params = st.query_params
+    uid = params.get("uid")
+    if uid and not st.session_state.get("authenticated"):
+        st.switch_page("app_karyawan.py")
+        
     if st.session_state.get("authenticated"):
         render_sidebar()
         role = st.session_state["user_role"]
