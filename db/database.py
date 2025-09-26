@@ -15,12 +15,12 @@ def get_engine():
     """
     global _engine
     if _engine is None:
-        # pool_size=5, max_overflow=0 keeps active connections limited
+        # Added pool_size and max_overflow to prevent connection exhaustion during batch XLS uploads
         _engine = create_engine(
             POSTGRES_URL,
-            pool_size=5,
-            max_overflow=0,
-            pool_pre_ping=True,
+            pool_size=10,         # allow up to 10 active connections
+            max_overflow=5,       # allow up to 5 extra connections temporarily
+            pool_pre_ping=True,   # ensures dead connections are detected
         )
     return _engine
 

@@ -83,17 +83,17 @@ def generate_karyawan_template_excel(lokasi_filter=None):
 def export_checkup_data_excel(df: pd.DataFrame) -> BytesIO:
     """
     Export given checkup DataFrame to Excel (BytesIO) for download.
-    Auto-formats numeric columns to 2 decimals.
+    Auto-formats numeric columns to 2 decimals safely.
     """
     output = BytesIO()
     df_to_export = df.copy()
 
-    # Format numeric columns to 2 decimals
+    # Format numeric columns to 2 decimals safely
     numeric_cols = ['tinggi','berat','bmi','lingkar_perut',
                     'gula_darah_puasa','gula_darah_sewaktu','cholesterol','asam_urat']
     for col in numeric_cols:
         if col in df_to_export.columns:
-            df_to_export[col] = df_to_export[col].round(2)
+            df_to_export[col] = pd.to_numeric(df_to_export[col], errors='coerce').round(2)
 
     # Convert tanggal columns to string for Excel
     for col in df_to_export.columns:
@@ -114,4 +114,5 @@ def export_checkup_data_excel(df: pd.DataFrame) -> BytesIO:
 
     output.seek(0)
     return output
+
 
